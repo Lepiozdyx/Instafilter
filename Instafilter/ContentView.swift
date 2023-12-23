@@ -12,15 +12,15 @@ import CoreImage.CIFilterBuiltins
 import StoreKit
 
 struct ContentView: View {
+    @Environment(\.requestReview) var requestReview
+    @AppStorage("filterCount") var filterCount = 0
+    
     @State private var processedImage: Image?
     @State private var filterIntensity = 0.5
     @State private var selectedItem: PhotosPickerItem?
     @State private var showingFilters = false
     @State private var currentFilter: CIFilter = .sepiaTone()
     let context = CIContext()
-    
-    @AppStorage("filterCount") var filterCount = 0
-    @Environment(\.requestReview) var requestReview
     
     var body: some View {
         NavigationStack {
@@ -32,6 +32,7 @@ struct ContentView: View {
                         processedImage
                             .resizable()
                             .scaledToFit()
+                            .clipShape(.rect(cornerRadius: 10))
                     } else {
                         ContentUnavailableView("No Picture", systemImage: "photo.badge.plus", description: Text("Tap to import a photo"))
                     }
@@ -45,30 +46,32 @@ struct ContentView: View {
                     Text("Intensity")
                     Slider(value: $filterIntensity)
                         .onChange(of: filterIntensity, applyProcessing)
+                        .disabled(processedImage == nil)
                 }
                 .padding(.vertical)
                 
-                HStack {
-                    Button("Change Filter", action: changeFilter)
-                    
-                    Spacer()
-                    
-                    if let processedImage {
-                        ShareLink(item: processedImage, preview: SharePreview("Instafilter image", image: processedImage ))
-                    }
-                }
+                Button("Change Filter", action: changeFilter)
+                    .disabled(processedImage == nil)
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top)
             }
             .padding([.horizontal, .bottom])
             .navigationTitle("Instafilter")
             .confirmationDialog("Select a filter", isPresented: $showingFilters) {
-                Button("Crystallize") { setFilter(CIFilter.crystallize()) }
-                Button("Edges") { setFilter(CIFilter.edges()) }
-                Button("Gaussian Blur") { setFilter(CIFilter.gaussianBlur()) }
-                Button("Pixellate") { setFilter(CIFilter.pixellate()) }
-                Button("Sepia Tone") { setFilter(CIFilter.sepiaTone()) }
-                Button("Unsharp Mask") { setFilter(CIFilter.unsharpMask()) }
-                Button("Vignette") { setFilter(CIFilter.vignette()) }
+                Button("Crystallize") { setFilter(.crystallize()) }
+                Button("Edges") { setFilter(.edges()) }
+                Button("Gaussian Blur") { setFilter(.gaussianBlur()) }
+                Button("Pixellate") { setFilter(.pixellate()) }
+                Button("Sepia Tone") { setFilter(.sepiaTone()) }
+                Button("Unsharp Mask") { setFilter(.unsharpMask()) }
+                Button("Vignette") { setFilter(.vignette()) }
+                Button("Gloom") { setFilter(.gloom()) }
                 Button("Cancel", role: .cancel) {}
+            }
+            .toolbar {
+                if let processedImage {
+                    ShareLink(item: processedImage, preview: SharePreview("Instafilter image", image: processedImage ))
+                }
             }
         }
     }
@@ -113,7 +116,7 @@ struct ContentView: View {
         loadImage()
         
         filterCount += 1
-        if filterCount >= 3 {
+        if filterCount >= 20 {
             requestReview()
         }
     }
